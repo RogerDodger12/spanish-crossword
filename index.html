@@ -57,6 +57,12 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .row2{display:flex;gap:10px;margin-top:14px}
 .ghost{flex:1;padding:12px;border-radius:12px;border:2px solid var(--ink);background:transparent;color:var(--ink);font-weight:700;font-size:15px}
 .ghost.small{border-color:var(--line);color:var(--muted);font-weight:600}
+.sect{margin:20px 4px 8px;font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.unit.extra .num{font-size:20px}
+.studybar{display:flex;gap:8px;margin:8px 0 2px}
+#modal .studybar button.alt{margin:0;flex:1;padding:9px;font-size:14px}
+table.study.hide td.en:not(.peek){color:transparent;background:#e6ebf2;border-radius:6px}
+td.en{cursor:pointer}
 
 /* ---------- Play ---------- */
 #topbar{display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:8px 12px}
@@ -133,6 +139,8 @@ td:first-child{font-weight:800}
       <div class="chip"><b id="hPts">0</b><span>points</span></div>
       <div class="chip"><b id="hStreak">0</b><span>day streak</span></div>
     </div>
+    <div id="extras"></div>
+    <h3 class="sect">Levels</h3>
     <div id="unitList"></div>
     <div class="row2">
       <button class="ghost" id="badgesBtn">My badges</button>
@@ -147,7 +155,7 @@ td:first-child{font-weight:800}
   <!-- Puzzle -->
   <div id="play" class="screen">
     <div id="topbar">
-      <button id="backBtn" aria-label="Back to units">&lsaquo; Units</button>
+      <button id="backBtn" aria-label="Back to home">&lsaquo; Home</button>
       <div class="ttl" id="ptitle"></div>
       <div class="pts" id="ppts"></div>
     </div>
@@ -187,7 +195,7 @@ if (!window.UNITS || !window.UNITS.length){
 }
 /* ======================= Save data ======================= */
 const SAVE_KEY = 'crucigrama_v2';
-const BLANK = () => ({points:0, streak:0, last:'', badges:[], done:{}, plays:{}, openAll:false, sound:true});
+const BLANK = () => ({points:0, streak:0, last:'', badges:[], done:{}, plays:{}, openAll:false, sound:true, weak:{}, daily:''});
 let save = (function(){
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) return Object.assign(BLANK(), s); } catch(e) {}
   return BLANK();
@@ -201,7 +209,9 @@ const BADGES = {
   streak7: '7-day streak',
   units3:  'Three units done',
   units10: 'Ten units done',
-  pts500:  '500 points'
+  pts500:  '500 points',
+  daily:   'Daily puzzle',
+  practice:'Practice puzzle'
 };
 
 /* ======================= Helpers ======================= */
@@ -291,6 +301,16 @@ function layout(words, seed){
   return {h:best.h, w:best.w, entries, missing: words.length - entries.length};
 }
 // ===LAYOUT END===
+// Mixed word sets from different levels occasionally leave a word unplaced; retry with new layouts.
+function layoutAll(words, seed, tries){
+  let best = null;
+  for (let t=0; t<(tries||14); t++){
+    const L = layout(words, seed + t*104729);
+    if (!best || L.missing < best.missing) best = L;
+    if (L.missing === 0) break;
+  }
+  return best;
+}
 
 /* ======================= Home screen ======================= */
 function unlocked(i){ return save.openAll || i===0 || !!save.done[UNITS[i-1].id]; }
@@ -301,6 +321,7 @@ function renderHome(){
   $('openAllBtn').textContent = save.openAll ? 'Lock units in order' : 'Unlock all units';
   $('soundBtn').textContent = 'Word sounds: ' + (save.sound ? 'On' : 'Off');
   $('soundBtn').style.display = hasSound() ? '' : 'none';
+  renderExtras();
   const list = $('unitList'); list.innerHTML = '';
   UNITS.forEach((u,i)=>{
     const open = unlocked(i), done = !!save.done[u.id];
@@ -313,6 +334,26 @@ function renderHome(){
     else b.setAttribute('aria-disabled','true');
     list.appendChild(b);
   });
+}
+function renderExtras(){
+  const ex = $('extras'); ex.innerHTML = '';
+  const dailyDone = save.daily === today();
+  const hasDone = Object.keys(save.done).length > 0;
+  const weakN = weakList().length;
+  const mk = (cls, glyph, title, sub, tag, on) => {
+    const b = document.createElement('button');
+    b.className = 'unit extra ' + cls;
+    b.innerHTML = '<div class="num">'+glyph+'</div><div class="txt"><b>'+title+'</b><span>'+sub+'</span></div><div class="tag">'+tag+'</div>';
+    if (on) b.onclick = on; else b.setAttribute('aria-disabled','true');
+    ex.appendChild(b);
+  };
+  mk(dailyDone ? 'done' : '', '&#9733;', 'Daily puzzle', dailyDone ? 'Done for today. See you tomorrow!' : '10 mixed words, new every day',
+     dailyDone ? 'Done' : 'Play', dailyDone ? null : startDaily);
+  const can = hasDone || weakN > 0;
+  mk(can ? '' : 'locked', '&#8635;', 'Practice',
+     weakN > 0 ? weakN+' tricky word'+(weakN>1?'s':'')+' to work on' : (hasDone ? 'Mixed review of your finished levels' : 'Finish a level to unlock'),
+     can ? 'Start' : 'Locked', can ? startPractice : null);
+  mk('', 'Aa', 'Study word lists', 'Review and hear every word', 'Open', showStudyMenu);
 }
 function showScreen(id){
   $('home').classList.toggle('on', id==='home');
@@ -358,9 +399,9 @@ function preloadAudio(words){
       .catch(() => { TRIED[es] = false; });
   });
 }
-let sayQ = [], sayBusy = false, curAud = null;
+let sayQ = [], sayBusy = false, curAud = null, sayGen = 0;
 function stopSay(){
-  sayQ.length = 0; sayBusy = false;
+  sayGen++; sayQ.length = 0; sayBusy = false;
   if (curAud){ try { curAud.pause(); } catch(e) {} curAud = null; }
   if (TTS){ try { speechSynthesis.cancel(); } catch(e) {} }
 }
@@ -375,7 +416,8 @@ function nextSay(){
   if (!text){ sayBusy = false; return; }
   sayBusy = true;
   let finished = false;
-  const done = () => { if (finished) return; finished = true; nextSay(); };
+  const gen = sayGen;
+  const done = () => { if (finished || gen !== sayGen) return; finished = true; setTimeout(() => { if (gen === sayGen) nextSay(); }, 300); };
   setTimeout(done, 5000);                       // never let the queue get stuck
   const url = AUD[text];
   if (url){
@@ -408,20 +450,49 @@ function sayDone(k){
     if (cs.includes(k) && cs.every(c => P.guess[c] === P.ans[c])){ P.said[id] = true; say(e.es); }
   });
 }
+function noteWrong(k){
+  // a fully filled word that isn't right counts as tricky
+  P.entries.forEach(e => {
+    const cs = cellsOf(e);
+    if (cs.includes(k) && cs.every(c => P.guess[c]) && !cs.every(c => P.guess[c] === P.ans[c])) P.flag[e.es] = true;
+  });
+}
 function sayRecap(i){ if (P && P.recap[i]) say(P.recap[i].es, true); }
 
 /* ======================= Puzzle ======================= */
 let P = null;
 
 function startUnit(i){
-  closeM();
   const u = UNITS[i];
-  const words = u.words.map(x => ({es:x.es, en:x.en, a:answerForm(x.es)}));
   const plays = save.plays[u.id] || 0;
-  const L = layout(words, hashStr(u.id) + plays*7919);
+  beginPuzzle({kind:'unit', index:i, unit:u, title:'Unit '+(i+1)+': '+u.title, words:u.words, seed:hashStr(u.id) + plays*7919});
+}
+// For mixed puzzles: if a word can't be fitted in, swap it for another word from the pool.
+function adaptiveLayout(chosen, spares, seed){
+  const n = chosen.length; spares = spares.slice();
+  let best = null;
+  for (let round=0; round<14; round++){
+    const ws = chosen.map(x => ({es:x.es, en:x.en, a:answerForm(x.es)}));
+    const L = layoutAll(ws, seed + round*7, 4);
+    if (!best || L.missing < best.L.missing) best = {ws, L};
+    if (L.missing === 0) break;
+    const placed = new Set(L.entries.map(e => e.es));
+    const keep = chosen.filter(w => placed.has(w.es));
+    while (keep.length < n && spares.length) keep.push(spares.shift());
+    if (keep.length === chosen.length && keep.every((w,i) => w === chosen[i])) break;
+    chosen = keep;
+  }
+  return best;
+}
+function beginPuzzle(o){
+  closeM();
+  let words = o.words.map(x => ({es:x.es, en:x.en, a:answerForm(x.es)}));
+  let L;
+  if (o.spares){ const r = adaptiveLayout(o.words, o.spares, o.seed); words = r.ws; L = r.L; }
+  else L = layoutAll(words, o.seed);
 
-  P = {index:i, unit:u, h:L.h, w:L.w, entries:L.entries, ans:{}, nums:{}, guess:{}, given:{},
-       sel:null, dir:'A', hints:3, reveals:1, revealUsed:false, said:{}, recap:[], done:false, missing:L.missing};
+  P = {kind:o.kind, index:o.index, unit:o.unit, h:L.h, w:L.w, entries:L.entries, ans:{}, nums:{}, guess:{}, given:{},
+       sel:null, dir:'A', hints:3, reveals:1, revealUsed:false, said:{}, flag:{}, recap:[], done:false, missing:L.missing};
   preloadAudio(P.entries.map(e => e.es));
   P.entries.forEach(e => {
     for (let k=0;k<e.a.length;k++){
@@ -433,12 +504,70 @@ function startUnit(i){
 
   const first = P.entries.slice().sort((a,b)=>a.n-b.n || (a.d==='A'?-1:1))[0];
   P.sel = first.r+','+first.c; P.dir = first.d;
-  $('ptitle').textContent = 'Unit '+(i+1)+': '+u.title;
+  $('ptitle').textContent = o.title;
   buildGrid();
   showScreen('play');
   fit();
   render();
 }
+
+/* ---------- Daily puzzle, Practice, Study ---------- */
+function seededPick(arr, n, seed){
+  const a = arr.slice(), r = mulberry32(seed);
+  for (let i=a.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a.slice(0, n);
+}
+function reviewPool(){            // words from finished levels (or level 1 for a brand-new player)
+  const out = [];
+  UNITS.forEach(u => { if (save.done[u.id]) u.words.forEach(w => out.push(w)); });
+  return out.length >= 10 ? out : UNITS[0].words.slice();
+}
+function weakList(){              // tricky words, worst first
+  const known = {}; UNITS.forEach(u => u.words.forEach(w => known[w.es] = w));
+  return Object.keys(save.weak).filter(es => known[es] && save.weak[es] > 0)
+    .sort((a,b) => save.weak[b] - save.weak[a]).map(es => known[es]);
+}
+function startDaily(){
+  if (save.daily === today()) return;
+  const order = seededPick(reviewPool(), 999, hashStr('daily-'+today()));
+  beginPuzzle({kind:'daily', index:-1, unit:{id:'daily', title:'Daily puzzle'}, title:'Daily puzzle',
+    words:order.slice(0,10), spares:order.slice(10), seed:hashStr('dl'+today())});
+}
+function startPractice(){
+  const weak = weakList();
+  const have = new Set(weak.slice(0, 10).map(w => w.es));
+  const rest = seededPick(reviewPool().filter(w => !have.has(w.es)), 999, Date.now());
+  let words = weak.slice(0, 10), spares = weak.slice(10).concat(rest);
+  while (words.length < 10 && spares.length) words.push(spares.shift());
+  if (words.length < 6) return;
+  beginPuzzle({kind:'practice', index:-1, unit:{id:'practice', title:'Practice'}, title:'Practice',
+    words:words, spares:spares, seed:Date.now() % 1000000007});
+}
+let studyHide = false;
+function showStudyMenu(){
+  let h = '<h2>Study word lists</h2><p>Pick a level to review its words and hear them.</p>', locked = 0;
+  UNITS.forEach((u,i) => {
+    if (unlocked(i)) h += '<button class="alt" onclick="showStudy('+i+')">'+(i+1)+'. '+u.title+'</button>'; else locked++;
+  });
+  if (locked) h += '<p style="color:#6b778d;font-size:14px">'+locked+' more level'+(locked>1?'s':'')+' will appear as you unlock them.</p>';
+  h += '<button class="main" onclick="closeM()">Close</button>';
+  show(h);
+}
+function showStudy(i, hide){
+  if (hide !== undefined) studyHide = hide;
+  const u = UNITS[i];
+  preloadAudio(u.words.map(w => w.es));
+  let h = '<h2>'+(i+1)+'. '+u.title+'</h2>';
+  h += '<div class="studybar"><button class="alt" onclick="showStudy('+i+','+(!studyHide)+')">'+(studyHide?'Show English':'Hide English')+'</button>'
+     + '<button class="alt" onclick="playAllStudy('+i+')">&#9654; Play all</button></div>';
+  h += '<table class="study'+(studyHide?' hide':'')+'">' + u.words.map((w,j) =>
+     '<tr><td>'+w.es+'</td><td class="en" onclick="this.classList.toggle(\'peek\')">'+w.en+'</td>'
+   + (hasSound() ? '<td class="spkcell"><button class="spk" onclick="sayStudy('+i+','+j+')" aria-label="Hear '+w.es+'">&#128266;</button></td>' : '') + '</tr>').join('') + '</table>';
+  h += '<button class="alt" onclick="showStudyMenu()">All levels</button><button class="main" onclick="closeM()">Close</button>';
+  show(h);
+}
+function sayStudy(i,j){ say(UNITS[i].words[j].es, true); }
+function playAllStudy(i){ stopSay(); UNITS[i].words.forEach(w => say(w.es)); }
 
 function buildGrid(){
   const g = $('grid'); g.innerHTML = '';
@@ -561,7 +690,7 @@ function type(ch){
   P.guess[P.sel] = ch;
   const here = P.sel;
   const nx = step(1); if (nx) P.sel = nx;
-  render(); sayDone(here); checkWin();
+  render(); sayDone(here); noteWrong(here); checkWin();
 }
 function backspace(){
   if (P.done || !P.sel) return;
@@ -576,7 +705,7 @@ function hint(){
   if (!w){ $('clue').textContent = 'Pick a word first, then tap Hint'; return; }
   for (const k of cellsOf(w)){
     if (P.guess[k] !== P.ans[k]){
-      P.guess[k] = P.ans[k]; P.given[k] = true; P.hints--;
+      P.guess[k] = P.ans[k]; P.given[k] = true; P.hints--; P.flag[w.es] = true;
       render(); checkWin(); return;
     }
   }
@@ -596,7 +725,7 @@ function doReveal(){
   const w = curWord();
   if (!w || P.done || P.hints>0 || P.reveals<=0) return;
   cellsOf(w).forEach(k => { P.guess[k] = P.ans[k]; P.given[k] = true; });
-  P.reveals--; P.revealUsed = true;
+  P.reveals--; P.revealUsed = true; P.flag[w.es] = true;
   render(); checkWin();
 }
 function checkWin(){
@@ -616,12 +745,24 @@ function win(){
     save.streak = (save.last === yesterday()) ? save.streak + 1 : 1;
     save.last = today();
   }
-  save.done[P.unit.id] = true;
-  save.plays[P.unit.id] = (save.plays[P.unit.id] || 0) + 1;
+  if (P.kind === 'unit'){
+    save.done[P.unit.id] = true;
+    save.plays[P.unit.id] = (save.plays[P.unit.id] || 0) + 1;
+  } else if (P.kind === 'daily'){
+    save.daily = today();
+  }
+  // tricky-word bookkeeping: trouble adds to the list, clean solves take words off it
+  let cleared = 0;
+  P.entries.forEach(e => {
+    if (P.flag[e.es]) save.weak[e.es] = Math.min(5, (save.weak[e.es] || 0) + 1);
+    else if (save.weak[e.es]){ save.weak[e.es]--; if (save.weak[e.es] <= 0){ delete save.weak[e.es]; cleared++; } }
+  });
 
   const fresh = [];
   const give = b => { if (!save.badges.includes(b)){ save.badges.push(b); fresh.push(b); } };
   give('first');
+  if (P.kind === 'daily') give('daily');
+  if (P.kind === 'practice') give('practice');
   if (used===0) give('nohint');
   if (save.streak>=3) give('streak3');
   if (save.streak>=7) give('streak7');
@@ -630,16 +771,17 @@ function win(){
   if (save.points>=500) give('pts500');
   persist(); render();
 
-  const next = P.index+1 < UNITS.length ? P.index+1 : -1;
+  const next = (P.kind === 'unit' && P.index+1 < UNITS.length) ? P.index+1 : -1;
   let h = '<h2>&iexcl;Felicidades!</h2>';
   h += '<p>You earned <b>'+pts+' points</b>' + (used || P.revealUsed ? ' ('+[used ? used+' hint'+(used>1?'s':'') : '', P.revealUsed ? '1 revealed word' : ''].filter(Boolean).join(' and ')+' used).' : ' with no hints!') + '</p>';
+  if (cleared) h += '<p>You cleared <b>'+cleared+' tricky word'+(cleared>1?'s':'')+'</b> from your practice list!</p>';
   if (fresh.length) h += '<p>New badges:<br>' + fresh.map(b=>'<span class="badge">'+BADGES[b]+'</span>').join('') + '</p>';
-  h += '<p style="margin-top:14px"><b>Words you learned</b></p><table>'
+  h += '<p style="margin-top:14px"><b>'+(P.kind==='unit' ? 'Words you learned' : 'Words in this puzzle')+'</b></p><table>'
      + (P.recap = P.entries.slice().sort((a,b)=>a.a.localeCompare(b.a))).map((e,i)=>'<tr><td>'+e.es+'</td><td>'+e.en+'</td>'
          + (hasSound() ? '<td class="spkcell"><button class="spk" onclick="sayRecap('+i+')" aria-label="Hear '+e.es+'">&#128266;</button></td>' : '') + '</tr>').join('')
      + '</table>';
   if (next>=0) h += '<button class="main" onclick="startUnit('+next+')">Next: '+UNITS[next].title+'</button>';
-  h += '<button class="'+(next>=0?'alt':'main')+'" onclick="goHome()">Back to units</button>';
+  h += '<button class="'+(next>=0?'alt':'main')+'" onclick="goHome()">Back to home</button>';
   show(h);
 }
 
