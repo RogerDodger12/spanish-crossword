@@ -13,6 +13,7 @@
   Keep each entry under about 13 letters so the grid stays phone-friendly.
   Aim for 10 to 14 entries per unit.
   Units unlock in the order listed here, so to reorder the year, just move a block up or down.
+  The current order starts with short, easy words and builds toward long words and phrases.
   Keep each id unique and never change an id after she has started, or her progress for that unit is lost.
 
   This is our own Spanish 101 sequence (19 units), roughly in the order most first-year
@@ -40,24 +41,6 @@ window.UNITS = [
     ]
   },
   {
-    id: "u18",
-    title: "Polite Phrases",
-    words: [
-      { es: "mucho gusto", en: "Nice to meet you" },
-      { es: "lo siento",   en: "I’m sorry" },
-      { es: "con permiso", en: "Excuse me (passing by)" },
-      { es: "disculpe",    en: "Excuse me (to get attention)" },
-      { es: "perdón",      en: "Pardon" },
-      { es: "hasta luego", en: "See you later" },
-      { es: "cómo estás",  en: "How are you? (informal)" },
-      { es: "qué tal",     en: "How’s it going?" },
-      { es: "bienvenido",  en: "Welcome (masculine)" },
-      { es: "igualmente",  en: "Likewise" },
-      { es: "claro",       en: "Of course" },
-      { es: "salud",       en: "Bless you or cheers" }
-    ]
-  },
-  {
     id: "u2",
     title: "Numbers 0 to 10",
     words: [
@@ -72,78 +55,6 @@ window.UNITS = [
       { es: "ocho",   en: "Eight" },
       { es: "nueve",  en: "Nine" },
       { es: "diez",   en: "Ten" }
-    ]
-  },
-  {
-    id: "u3",
-    title: "Days of the Week",
-    words: [
-      { es: "lunes",     en: "Monday" },
-      { es: "martes",    en: "Tuesday" },
-      { es: "miércoles", en: "Wednesday" },
-      { es: "jueves",    en: "Thursday" },
-      { es: "viernes",   en: "Friday" },
-      { es: "sábado",    en: "Saturday" },
-      { es: "domingo",   en: "Sunday" },
-      { es: "día",       en: "Day" },
-      { es: "semana",    en: "Week" },
-      { es: "hoy",       en: "Today" },
-      { es: "ayer",      en: "Yesterday" }
-    ]
-  },
-  {
-    id: "u19",
-    title: "Times of Day",
-    words: [
-      { es: "buenos días",   en: "Good morning" },
-      { es: "buenas tardes", en: "Good afternoon" },
-      { es: "buenas noches", en: "Good evening or good night" },
-      { es: "hasta mañana",  en: "See you tomorrow" },
-      { es: "mañana",        en: "Morning or tomorrow" },
-      { es: "tarde",         en: "Afternoon or late" },
-      { es: "noche",         en: "Night" },
-      { es: "mediodía",      en: "Noon" },
-      { es: "temprano",      en: "Early" },
-      { es: "hora",          en: "Hour" },
-      { es: "reloj",         en: "Clock" }
-    ]
-  },
-  {
-    id: "u4",
-    title: "Months of the Year",
-    words: [
-      { es: "enero",      en: "January" },
-      { es: "febrero",    en: "February" },
-      { es: "marzo",      en: "March" },
-      { es: "abril",      en: "April" },
-      { es: "mayo",       en: "May" },
-      { es: "junio",      en: "June" },
-      { es: "julio",      en: "July" },
-      { es: "agosto",     en: "August" },
-      { es: "septiembre", en: "September" },
-      { es: "octubre",    en: "October" },
-      { es: "noviembre",  en: "November" },
-      { es: "diciembre",  en: "December" }
-    ]
-  },
-  {
-    id: "u5",
-    title: "Numbers 11 to 100",
-    words: [
-      { es: "once",       en: "Eleven" },
-      { es: "doce",       en: "Twelve" },
-      { es: "trece",      en: "Thirteen" },
-      { es: "catorce",    en: "Fourteen" },
-      { es: "quince",     en: "Fifteen" },
-      { es: "dieciséis",  en: "Sixteen" },
-      { es: "diecisiete", en: "Seventeen" },
-      { es: "dieciocho",  en: "Eighteen" },
-      { es: "diecinueve", en: "Nineteen" },
-      { es: "veinte",     en: "Twenty" },
-      { es: "treinta",    en: "Thirty" },
-      { es: "cuarenta",   en: "Forty" },
-      { es: "cincuenta",  en: "Fifty" },
-      { es: "cien",       en: "One hundred" }
     ]
   },
   {
@@ -180,6 +91,41 @@ window.UNITS = [
       { es: "tío",     en: "Uncle" },
       { es: "tía",     en: "Aunt" },
       { es: "primo",   en: "Cousin (masculine)" }
+    ]
+  },
+  {
+    id: "u3",
+    title: "Days of the Week",
+    words: [
+      { es: "lunes",     en: "Monday" },
+      { es: "martes",    en: "Tuesday" },
+      { es: "miércoles", en: "Wednesday" },
+      { es: "jueves",    en: "Thursday" },
+      { es: "viernes",   en: "Friday" },
+      { es: "sábado",    en: "Saturday" },
+      { es: "domingo",   en: "Sunday" },
+      { es: "día",       en: "Day" },
+      { es: "semana",    en: "Week" },
+      { es: "hoy",       en: "Today" },
+      { es: "ayer",      en: "Yesterday" }
+    ]
+  },
+  {
+    id: "u4",
+    title: "Months of the Year",
+    words: [
+      { es: "enero",      en: "January" },
+      { es: "febrero",    en: "February" },
+      { es: "marzo",      en: "March" },
+      { es: "abril",      en: "April" },
+      { es: "mayo",       en: "May" },
+      { es: "junio",      en: "June" },
+      { es: "julio",      en: "July" },
+      { es: "agosto",     en: "August" },
+      { es: "septiembre", en: "September" },
+      { es: "octubre",    en: "October" },
+      { es: "noviembre",  en: "November" },
+      { es: "diciembre",  en: "December" }
     ]
   },
   {
@@ -220,6 +166,24 @@ window.UNITS = [
     ]
   },
   {
+    id: "u15",
+    title: "Animals",
+    words: [
+      { es: "perro",   en: "Dog" },
+      { es: "gato",    en: "Cat" },
+      { es: "pájaro",  en: "Bird" },
+      { es: "pez",     en: "Fish (alive)" },
+      { es: "caballo", en: "Horse" },
+      { es: "vaca",    en: "Cow" },
+      { es: "conejo",  en: "Rabbit" },
+      { es: "ratón",   en: "Mouse" },
+      { es: "tortuga", en: "Turtle" },
+      { es: "mascota", en: "Pet" },
+      { es: "león",    en: "Lion" },
+      { es: "oso",     en: "Bear" }
+    ]
+  },
+  {
     id: "u10",
     title: "Food and Drinks",
     words: [
@@ -239,24 +203,6 @@ window.UNITS = [
     ]
   },
   {
-    id: "u11",
-    title: "Weather and Seasons",
-    words: [
-      { es: "primavera", en: "Spring" },
-      { es: "verano",    en: "Summer" },
-      { es: "otoño",     en: "Fall or autumn" },
-      { es: "invierno",  en: "Winter" },
-      { es: "sol",       en: "Sun" },
-      { es: "lluvia",    en: "Rain" },
-      { es: "nieve",     en: "Snow" },
-      { es: "viento",    en: "Wind" },
-      { es: "calor",     en: "Heat" },
-      { es: "frío",      en: "Cold" },
-      { es: "nube",      en: "Cloud" },
-      { es: "tiempo",    en: "Weather" }
-    ]
-  },
-  {
     id: "u12",
     title: "Parts of the Body",
     words: [
@@ -272,6 +218,61 @@ window.UNITS = [
       { es: "pie",     en: "Foot" },
       { es: "dedo",    en: "Finger" },
       { es: "corazón", en: "Heart" }
+    ]
+  },
+  {
+    id: "u5",
+    title: "Numbers 11 to 100",
+    words: [
+      { es: "once",       en: "Eleven" },
+      { es: "doce",       en: "Twelve" },
+      { es: "trece",      en: "Thirteen" },
+      { es: "catorce",    en: "Fourteen" },
+      { es: "quince",     en: "Fifteen" },
+      { es: "dieciséis",  en: "Sixteen" },
+      { es: "diecisiete", en: "Seventeen" },
+      { es: "dieciocho",  en: "Eighteen" },
+      { es: "diecinueve", en: "Nineteen" },
+      { es: "veinte",     en: "Twenty" },
+      { es: "treinta",    en: "Thirty" },
+      { es: "cuarenta",   en: "Forty" },
+      { es: "cincuenta",  en: "Fifty" },
+      { es: "cien",       en: "One hundred" }
+    ]
+  },
+  {
+    id: "u19",
+    title: "Times of Day",
+    words: [
+      { es: "buenos días",   en: "Good morning" },
+      { es: "buenas tardes", en: "Good afternoon" },
+      { es: "buenas noches", en: "Good evening or good night" },
+      { es: "hasta mañana",  en: "See you tomorrow" },
+      { es: "mañana",        en: "Morning or tomorrow" },
+      { es: "tarde",         en: "Afternoon or late" },
+      { es: "noche",         en: "Night" },
+      { es: "mediodía",      en: "Noon" },
+      { es: "temprano",      en: "Early" },
+      { es: "hora",          en: "Hour" },
+      { es: "reloj",         en: "Clock" }
+    ]
+  },
+  {
+    id: "u11",
+    title: "Weather and Seasons",
+    words: [
+      { es: "primavera", en: "Spring" },
+      { es: "verano",    en: "Summer" },
+      { es: "otoño",     en: "Fall or autumn" },
+      { es: "invierno",  en: "Winter" },
+      { es: "sol",       en: "Sun" },
+      { es: "lluvia",    en: "Rain" },
+      { es: "nieve",     en: "Snow" },
+      { es: "viento",    en: "Wind" },
+      { es: "calor",     en: "Heat" },
+      { es: "frío",      en: "Cold" },
+      { es: "nube",      en: "Cloud" },
+      { es: "tiempo",    en: "Weather" }
     ]
   },
   {
@@ -309,24 +310,6 @@ window.UNITS = [
     ]
   },
   {
-    id: "u15",
-    title: "Animals",
-    words: [
-      { es: "perro",   en: "Dog" },
-      { es: "gato",    en: "Cat" },
-      { es: "pájaro",  en: "Bird" },
-      { es: "pez",     en: "Fish (alive)" },
-      { es: "caballo", en: "Horse" },
-      { es: "vaca",    en: "Cow" },
-      { es: "conejo",  en: "Rabbit" },
-      { es: "ratón",   en: "Mouse" },
-      { es: "tortuga", en: "Turtle" },
-      { es: "mascota", en: "Pet" },
-      { es: "león",    en: "Lion" },
-      { es: "oso",     en: "Bear" }
-    ]
-  },
-  {
     id: "u16",
     title: "Places in Town",
     words: [
@@ -360,6 +343,24 @@ window.UNITS = [
       { es: "querer",   en: "To want" },
       { es: "estudiar", en: "To study" },
       { es: "trabajar", en: "To work" }
+    ]
+  },
+  {
+    id: "u18",
+    title: "Polite Phrases",
+    words: [
+      { es: "mucho gusto", en: "Nice to meet you" },
+      { es: "lo siento",   en: "I’m sorry" },
+      { es: "con permiso", en: "Excuse me (passing by)" },
+      { es: "disculpe",    en: "Excuse me (to get attention)" },
+      { es: "perdón",      en: "Pardon" },
+      { es: "hasta luego", en: "See you later" },
+      { es: "cómo estás",  en: "How are you? (informal)" },
+      { es: "qué tal",     en: "How’s it going?" },
+      { es: "bienvenido",  en: "Welcome (masculine)" },
+      { es: "igualmente",  en: "Likewise" },
+      { es: "claro",       en: "Of course" },
+      { es: "salud",       en: "Bless you or cheers" }
     ]
   }
 ];
