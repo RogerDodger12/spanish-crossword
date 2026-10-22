@@ -176,6 +176,7 @@ td:first-child{font-weight:800}
 // Always fetch a fresh copy of the word list so updates show up right away (no stale cache)
 document.write('<script src="units.js?v=' + Date.now() + '"><\/script>');
 </script>
+<script src="audio-index.js"></script>
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
@@ -299,7 +300,7 @@ function renderHome(){
   $('hStreak').textContent = save.streak;
   $('openAllBtn').textContent = save.openAll ? 'Lock units in order' : 'Unlock all units';
   $('soundBtn').textContent = 'Word sounds: ' + (save.sound ? 'On' : 'Off');
-  $('soundBtn').style.display = TTS ? '' : 'none';
+  $('soundBtn').style.display = hasSound() ? '' : 'none';
   const list = $('unitList'); list.innerHTML = '';
   UNITS.forEach((u,i)=>{
     const open = unlocked(i), done = !!save.done[u.id];
@@ -341,15 +342,61 @@ function pickVoice(){
   esVoice = vs.slice().sort((a,b) => score(b) - score(a))[0];
 }
 if (TTS){ pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch(e) {} }
+function hasSound(){ return TTS || !!window.AUDIO; }
+
+// Recorded clips are loaded into memory when a unit opens, so a tap plays instantly
+// (and still works on the phone's silent setting, which blocks the built-in voice).
+const AUD = {}, TRIED = {};
+function preloadAudio(words){
+  if (!window.AUDIO) return;
+  words.forEach(es => {
+    const path = window.AUDIO[es];
+    if (!path || TRIED[es]) return;
+    TRIED[es] = true;
+    fetch(path).then(r => { if (!r.ok) throw new Error('missing'); return r.blob(); })
+      .then(b => { AUD[es] = URL.createObjectURL(b); })
+      .catch(() => { TRIED[es] = false; });
+  });
+}
+let sayQ = [], sayBusy = false, curAud = null;
+function stopSay(){
+  sayQ.length = 0; sayBusy = false;
+  if (curAud){ try { curAud.pause(); } catch(e) {} curAud = null; }
+  if (TTS){ try { speechSynthesis.cancel(); } catch(e) {} }
+}
 function say(text, flush){
-  if (!TTS || !text) return;
+  if (!text || !hasSound()) return;
+  if (flush) stopSay();
+  sayQ.push(text);
+  if (!sayBusy) nextSay();
+}
+function nextSay(){
+  const text = sayQ.shift();
+  if (!text){ sayBusy = false; return; }
+  sayBusy = true;
+  let finished = false;
+  const done = () => { if (finished) return; finished = true; nextSay(); };
+  setTimeout(done, 5000);                       // never let the queue get stuck
+  const url = AUD[text];
+  if (url){
+    try {
+      const a = new Audio(url); curAud = a;
+      a.onended = done; a.onerror = () => { curAud = null; voiceSay(text, done); };
+      const pr = a.play();
+      if (pr && pr.catch) pr.catch(() => { curAud = null; voiceSay(text, done); });
+      return;
+    } catch(e) {}
+  }
+  voiceSay(text, done);
+}
+function voiceSay(text, done){
+  if (!TTS){ done(); return; }
   try {
-    if (flush) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     if (esVoice){ u.voice = esVoice; u.lang = esVoice.lang; } else u.lang = 'es-MX';
-    u.rate = 0.85;
+    u.rate = 0.85; u.onend = done; u.onerror = done;
     speechSynthesis.speak(u);
-  } catch(e) {}
+  } catch(e) { done(); }
 }
 function sayDone(k){
   // when the cell just typed finishes a word, say that word out loud (once)
@@ -375,6 +422,7 @@ function startUnit(i){
 
   P = {index:i, unit:u, h:L.h, w:L.w, entries:L.entries, ans:{}, nums:{}, guess:{}, given:{},
        sel:null, dir:'A', hints:3, reveals:1, revealUsed:false, said:{}, recap:[], done:false, missing:L.missing};
+  preloadAudio(P.entries.map(e => e.es));
   P.entries.forEach(e => {
     for (let k=0;k<e.a.length;k++){
       const r = e.r + (e.d==='D'?k:0), c = e.c + (e.d==='A'?k:0);
@@ -588,7 +636,7 @@ function win(){
   if (fresh.length) h += '<p>New badges:<br>' + fresh.map(b=>'<span class="badge">'+BADGES[b]+'</span>').join('') + '</p>';
   h += '<p style="margin-top:14px"><b>Words you learned</b></p><table>'
      + (P.recap = P.entries.slice().sort((a,b)=>a.a.localeCompare(b.a))).map((e,i)=>'<tr><td>'+e.es+'</td><td>'+e.en+'</td>'
-         + (TTS ? '<td class="spkcell"><button class="spk" onclick="sayRecap('+i+')" aria-label="Hear '+e.es+'">&#128266;</button></td>' : '') + '</tr>').join('')
+         + (hasSound() ? '<td class="spkcell"><button class="spk" onclick="sayRecap('+i+')" aria-label="Hear '+e.es+'">&#128266;</button></td>' : '') + '</tr>').join('')
      + '</table>';
   if (next>=0) h += '<button class="main" onclick="startUnit('+next+')">Next: '+UNITS[next].title+'</button>';
   h += '<button class="'+(next>=0?'alt':'main')+'" onclick="goHome()">Back to units</button>';
