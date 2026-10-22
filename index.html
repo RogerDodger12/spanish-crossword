@@ -86,6 +86,8 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .cell.bad{color:#fff;background:var(--accent);border-color:var(--accent)}
 .cell .n{position:absolute;top:1px;left:3px;font-size:calc(var(--s) * .27);font-weight:700;color:var(--muted);line-height:1}
 .cell.bad .n{color:#fff}
+#revealRow{display:none;padding:6px 10px 0}
+#revealRow button{width:100%;padding:11px;border:2px solid var(--accent);border-radius:12px;background:#fff;color:var(--accent);font-size:15px;font-weight:700}
 #actions{display:flex;gap:8px;padding:6px 10px}
 #actions button{flex:1;padding:11px;font-size:15px;border:0;border-radius:12px;background:var(--ink);color:#fff;font-weight:700}
 #actions button:disabled{opacity:.4}
@@ -149,6 +151,7 @@ td:first-child{font-weight:800}
       <div id="gridwrap"><div id="grid"></div></div>
       <aside id="cluepanel" aria-label="All clues"></aside>
     </div>
+    <div id="revealRow"><button id="revealBtn">Out of hints? Reveal this word</button></div>
     <div id="actions">
       <button id="hintBtn">Hint (3)</button>
       <button id="clueBtn">All clues</button>
@@ -317,7 +320,7 @@ function startUnit(i){
   const L = layout(words, hashStr(u.id) + plays*7919);
 
   P = {index:i, unit:u, h:L.h, w:L.w, entries:L.entries, ans:{}, nums:{}, guess:{}, given:{},
-       sel:null, dir:'A', hints:3, done:false, missing:L.missing};
+       sel:null, dir:'A', hints:3, reveals:1, revealUsed:false, done:false, missing:L.missing};
   P.entries.forEach(e => {
     for (let k=0;k<e.a.length;k++){
       const r = e.r + (e.d==='D'?k:0), c = e.c + (e.d==='A'?k:0);
@@ -417,6 +420,10 @@ function render(){
   cp.innerHTML = '<div class="cl">' + clueListHTML() + '</div>';
   cp.scrollTop = top;
 
+  const canReveal = P.hints<=0 && P.reveals>0 && !P.done;
+  const rr = $('revealRow');
+  if ((rr.style.display==='block') !== canReveal){ rr.style.display = canReveal ? 'block' : 'none'; fit(); }
+
   $('hintBtn').textContent = 'Hint (' + P.hints + ')';
   $('hintBtn').disabled = P.hints<=0 || P.done;
   $('ppts').textContent = save.points + ' pts';
@@ -472,6 +479,23 @@ function hint(){
   }
   $('clue').textContent = 'That word is already complete!';
 }
+function askReveal(){
+  if (!P || P.done || P.hints>0 || P.reveals<=0) return;
+  const w = curWord();
+  if (!w){ $('clue').textContent = 'Pick a word first, then tap Reveal'; return; }
+  if (cellsOf(w).every(k => P.guess[k]===P.ans[k])){ $('clue').textContent = 'That word is already complete!'; return; }
+  show('<h2>Reveal this word?</h2><p>This fills in the whole answer for <b>&ldquo;'+w.en+'&rdquo;</b>. You only get one reveal per level, and it takes 20 points off.</p>'
+     + '<button class="main" onclick="doReveal()">Reveal the word</button>'
+     + '<button class="alt" onclick="closeM()">Keep trying</button>');
+}
+function doReveal(){
+  closeM();
+  const w = curWord();
+  if (!w || P.done || P.hints>0 || P.reveals<=0) return;
+  cellsOf(w).forEach(k => { P.guess[k] = P.ans[k]; P.given[k] = true; });
+  P.reveals--; P.revealUsed = true;
+  render(); checkWin();
+}
 function checkWin(){
   for (const k in P.ans) if (P.guess[k] !== P.ans[k]) return;
   win();
@@ -481,7 +505,8 @@ function checkWin(){
 function win(){
   P.done = true;
   const used = 3 - P.hints;
-  const pts = Math.max(40, 100 - used*20);
+  let pts = Math.max(40, 100 - used*20);
+  if (P.revealUsed) pts = Math.max(20, pts - 20);
   save.points += pts;
 
   if (save.last !== today()){
@@ -504,7 +529,7 @@ function win(){
 
   const next = P.index+1 < UNITS.length ? P.index+1 : -1;
   let h = '<h2>&iexcl;Felicidades!</h2>';
-  h += '<p>You earned <b>'+pts+' points</b>' + (used ? ' ('+used+' hint'+(used>1?'s':'')+' used).' : ' with no hints!') + '</p>';
+  h += '<p>You earned <b>'+pts+' points</b>' + (used || P.revealUsed ? ' ('+[used ? used+' hint'+(used>1?'s':'') : '', P.revealUsed ? '1 revealed word' : ''].filter(Boolean).join(' and ')+' used).' : ' with no hints!') + '</p>';
   if (fresh.length) h += '<p>New badges:<br>' + fresh.map(b=>'<span class="badge">'+BADGES[b]+'</span>').join('') + '</p>';
   h += '<p style="margin-top:14px"><b>Words you learned</b></p><table>'
      + P.entries.slice().sort((a,b)=>a.a.localeCompare(b.a)).map(e=>'<tr><td>'+e.es+'</td><td>'+e.en+'</td></tr>').join('')
@@ -549,6 +574,7 @@ function closeM(){ $('modal').style.display = 'none'; }
 })();
 
 $('hintBtn').onclick = hint;
+$('revealBtn').onclick = askReveal;
 $('dirBtn').onclick = toggleDir;
 $('clueBtn').onclick = showClues;
 $('openAllBtn').onclick = () => { save.openAll = !save.openAll; persist(); renderHome(); };
