@@ -112,6 +112,8 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .badge.off{opacity:.3}
 table{width:100%;border-collapse:collapse;margin-top:8px}
 td{padding:6px 4px;border-bottom:1px solid #e6ebf2;font-size:16px}
+td.spkcell{width:48px;text-align:right}
+.spk{border:0;background:#eef2f9;border-radius:10px;width:40px;height:36px;font-size:18px;padding:0;cursor:pointer}
 td:first-child{font-weight:800}
 @media (prefers-reduced-motion:no-preference){
   .cell{transition:background .12s}
@@ -138,6 +140,7 @@ td:first-child{font-weight:800}
     </div>
     <div class="row2">
       <button class="ghost small" id="openAllBtn">Unlock all units</button>
+      <button class="ghost small" id="soundBtn">Word sounds: On</button>
     </div>
   </div>
 
@@ -183,7 +186,7 @@ if (!window.UNITS || !window.UNITS.length){
 }
 /* ======================= Save data ======================= */
 const SAVE_KEY = 'crucigrama_v2';
-const BLANK = () => ({points:0, streak:0, last:'', badges:[], done:{}, plays:{}, openAll:false});
+const BLANK = () => ({points:0, streak:0, last:'', badges:[], done:{}, plays:{}, openAll:false, sound:true});
 let save = (function(){
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) return Object.assign(BLANK(), s); } catch(e) {}
   return BLANK();
@@ -295,6 +298,8 @@ function renderHome(){
   $('hPts').textContent = save.points;
   $('hStreak').textContent = save.streak;
   $('openAllBtn').textContent = save.openAll ? 'Lock units in order' : 'Unlock all units';
+  $('soundBtn').textContent = 'Word sounds: ' + (save.sound ? 'On' : 'Off');
+  $('soundBtn').style.display = TTS ? '' : 'none';
   const list = $('unitList'); list.innerHTML = '';
   UNITS.forEach((u,i)=>{
     const open = unlocked(i), done = !!save.done[u.id];
@@ -314,6 +319,50 @@ function showScreen(id){
 }
 function goHome(){ closeM(); showScreen('home'); renderHome(); }
 
+/* ======================= Pronunciation ======================= */
+// Uses the phone's built-in Spanish voice (works offline). Prefers Latin American
+// Spanish, and higher-quality "Enhanced"/"Premium" voices when they are installed.
+const TTS = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+let esVoice = null;
+function pickVoice(){
+  if (!TTS) return;
+  const vs = speechSynthesis.getVoices().filter(v => /^es([-_]|$)/i.test(v.lang));
+  if (!vs.length){ esVoice = null; return; }
+  const gimmick = /bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox/i;
+  const score = v => {
+    const L = v.lang.replace('_','-').toLowerCase(), n = v.name.toLowerCase();
+    let sc = 0;
+    if (L==='es-mx') sc += 30; else if (L==='es-us' || L==='es-419') sc += 25; else if (L==='es-es') sc += 10;
+    if (/premium/.test(n)) sc += 20; else if (/enhanced|natural/.test(n)) sc += 12;
+    if (gimmick.test(n)) sc -= 100;
+    if (v.localService) sc += 3;
+    return sc;
+  };
+  esVoice = vs.slice().sort((a,b) => score(b) - score(a))[0];
+}
+if (TTS){ pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch(e) {} }
+function say(text, flush){
+  if (!TTS || !text) return;
+  try {
+    if (flush) speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (esVoice){ u.voice = esVoice; u.lang = esVoice.lang; } else u.lang = 'es-MX';
+    u.rate = 0.85;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+function sayDone(k){
+  // when the cell just typed finishes a word, say that word out loud (once)
+  if (!save.sound || !P) return;
+  P.entries.forEach(e => {
+    const id = e.r+','+e.c+e.d;
+    if (P.said[id]) return;
+    const cs = cellsOf(e);
+    if (cs.includes(k) && cs.every(c => P.guess[c] === P.ans[c])){ P.said[id] = true; say(e.es); }
+  });
+}
+function sayRecap(i){ if (P && P.recap[i]) say(P.recap[i].es, true); }
+
 /* ======================= Puzzle ======================= */
 let P = null;
 
@@ -325,7 +374,7 @@ function startUnit(i){
   const L = layout(words, hashStr(u.id) + plays*7919);
 
   P = {index:i, unit:u, h:L.h, w:L.w, entries:L.entries, ans:{}, nums:{}, guess:{}, given:{},
-       sel:null, dir:'A', hints:3, reveals:1, revealUsed:false, done:false, missing:L.missing};
+       sel:null, dir:'A', hints:3, reveals:1, revealUsed:false, said:{}, recap:[], done:false, missing:L.missing};
   P.entries.forEach(e => {
     for (let k=0;k<e.a.length;k++){
       const r = e.r + (e.d==='D'?k:0), c = e.c + (e.d==='A'?k:0);
@@ -462,8 +511,9 @@ function step(dir){
 function type(ch){
   if (P.done || !P.sel || P.given[P.sel]) return;
   P.guess[P.sel] = ch;
+  const here = P.sel;
   const nx = step(1); if (nx) P.sel = nx;
-  render(); checkWin();
+  render(); sayDone(here); checkWin();
 }
 function backspace(){
   if (P.done || !P.sel) return;
@@ -537,7 +587,8 @@ function win(){
   h += '<p>You earned <b>'+pts+' points</b>' + (used || P.revealUsed ? ' ('+[used ? used+' hint'+(used>1?'s':'') : '', P.revealUsed ? '1 revealed word' : ''].filter(Boolean).join(' and ')+' used).' : ' with no hints!') + '</p>';
   if (fresh.length) h += '<p>New badges:<br>' + fresh.map(b=>'<span class="badge">'+BADGES[b]+'</span>').join('') + '</p>';
   h += '<p style="margin-top:14px"><b>Words you learned</b></p><table>'
-     + P.entries.slice().sort((a,b)=>a.a.localeCompare(b.a)).map(e=>'<tr><td>'+e.es+'</td><td>'+e.en+'</td></tr>').join('')
+     + (P.recap = P.entries.slice().sort((a,b)=>a.a.localeCompare(b.a))).map((e,i)=>'<tr><td>'+e.es+'</td><td>'+e.en+'</td>'
+         + (TTS ? '<td class="spkcell"><button class="spk" onclick="sayRecap('+i+')" aria-label="Hear '+e.es+'">&#128266;</button></td>' : '') + '</tr>').join('')
      + '</table>';
   if (next>=0) h += '<button class="main" onclick="startUnit('+next+')">Next: '+UNITS[next].title+'</button>';
   h += '<button class="'+(next>=0?'alt':'main')+'" onclick="goHome()">Back to units</button>';
@@ -582,6 +633,7 @@ $('hintBtn').onclick = hint;
 $('revealBtn').onclick = askReveal;
 $('dirBtn').onclick = toggleDir;
 $('clueBtn').onclick = showClues;
+$('soundBtn').onclick = () => { save.sound = !save.sound; persist(); renderHome(); if (save.sound) say('hola', true); };
 $('openAllBtn').onclick = () => { save.openAll = !save.openAll; persist(); renderHome(); };
 $('backBtn').onclick = goHome;
 $('badgesBtn').onclick = showBadges;
