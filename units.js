@@ -58,6 +58,41 @@ window.UNITS = [
     ]
   },
   {
+    id: "u3",
+    title: "Days of the Week",
+    words: [
+      { es: "lunes",     en: "Monday" },
+      { es: "martes",    en: "Tuesday" },
+      { es: "miércoles", en: "Wednesday" },
+      { es: "jueves",    en: "Thursday" },
+      { es: "viernes",   en: "Friday" },
+      { es: "sábado",    en: "Saturday" },
+      { es: "domingo",   en: "Sunday" },
+      { es: "día",       en: "Day" },
+      { es: "semana",    en: "Week" },
+      { es: "hoy",       en: "Today" },
+      { es: "ayer",      en: "Yesterday" }
+    ]
+  },
+  {
+    id: "u4",
+    title: "Months of the Year",
+    words: [
+      { es: "enero",      en: "January" },
+      { es: "febrero",    en: "February" },
+      { es: "marzo",      en: "March" },
+      { es: "abril",      en: "April" },
+      { es: "mayo",       en: "May" },
+      { es: "junio",      en: "June" },
+      { es: "julio",      en: "July" },
+      { es: "agosto",     en: "August" },
+      { es: "septiembre", en: "September" },
+      { es: "octubre",    en: "October" },
+      { es: "noviembre",  en: "November" },
+      { es: "diciembre",  en: "December" }
+    ]
+  },
+  {
     id: "u6",
     title: "Colors",
     words: [
@@ -91,41 +126,6 @@ window.UNITS = [
       { es: "tío",     en: "Uncle" },
       { es: "tía",     en: "Aunt" },
       { es: "primo",   en: "Cousin (masculine)" }
-    ]
-  },
-  {
-    id: "u3",
-    title: "Days of the Week",
-    words: [
-      { es: "lunes",     en: "Monday" },
-      { es: "martes",    en: "Tuesday" },
-      { es: "miércoles", en: "Wednesday" },
-      { es: "jueves",    en: "Thursday" },
-      { es: "viernes",   en: "Friday" },
-      { es: "sábado",    en: "Saturday" },
-      { es: "domingo",   en: "Sunday" },
-      { es: "día",       en: "Day" },
-      { es: "semana",    en: "Week" },
-      { es: "hoy",       en: "Today" },
-      { es: "ayer",      en: "Yesterday" }
-    ]
-  },
-  {
-    id: "u4",
-    title: "Months of the Year",
-    words: [
-      { es: "enero",      en: "January" },
-      { es: "febrero",    en: "February" },
-      { es: "marzo",      en: "March" },
-      { es: "abril",      en: "April" },
-      { es: "mayo",       en: "May" },
-      { es: "junio",      en: "June" },
-      { es: "julio",      en: "July" },
-      { es: "agosto",     en: "August" },
-      { es: "septiembre", en: "September" },
-      { es: "octubre",    en: "October" },
-      { es: "noviembre",  en: "November" },
-      { es: "diciembre",  en: "December" }
     ]
   },
   {
