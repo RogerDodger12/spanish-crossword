@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crucigrama">
 <meta name="theme-color" content="#14213d">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Crucigrama</title>
 <style>
 :root{
@@ -170,6 +172,9 @@ td:first-child{font-weight:800}
 <script>
 // Always fetch a fresh copy of the word list so updates show up right away (no stale cache)
 document.write('<script src="units.js?v=' + Date.now() + '"><\/script>');
+</script>
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 <script>
 if (!window.UNITS || !window.UNITS.length){
