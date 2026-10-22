@@ -164,8 +164,15 @@ td:first-child{font-weight:800}
 </div>
 <div id="modal"><div class="box" id="mbox"></div></div>
 
-<script src="units.js"></script>
 <script>
+// Always fetch a fresh copy of the word list so updates show up right away (no stale cache)
+document.write('<script src="units.js?v=' + Date.now() + '"><\/script>');
+</script>
+<script>
+if (!window.UNITS || !window.UNITS.length){
+  document.body.innerHTML = '<p style="padding:24px;font:18px system-ui">Could not load the word lists. Make sure <b>units.js</b> is in the same place as index.html.</p>';
+  throw new Error('units.js did not load');
+}
 /* ======================= Save data ======================= */
 const SAVE_KEY = 'crucigrama_v2';
 const BLANK = () => ({points:0, streak:0, last:'', badges:[], done:{}, plays:{}, openAll:false});
